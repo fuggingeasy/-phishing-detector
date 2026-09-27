@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://phishing-detector-api-kggd.onrender.com";
 const TOKEN_KEY = "phishing_scanner_token";
 const EMAIL_KEY = "phishing_scanner_email";
 
