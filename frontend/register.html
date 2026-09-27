@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register · Phishing Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="scanner__prompt">
+      <span class="dot dot--red"></span>
+      <span class="dot dot--amber"></span>
+      <span class="dot dot--green"></span>
+      <span class="scanner__path">mail-scan &nbsp;~&nbsp; register</span>
+    </div>
+
+    <h1 class="auth-title">Create account</h1>
+    <p class="auth-subtitle">Register to start scanning emails.</p>
+
+    <form id="register-form" class="auth-form">
+      <label class="panel__label" for="email">email</label>
+      <input id="email" type="email" class="auth-input" required autocomplete="email" placeholder="you@example.com">
+
+      <label class="panel__label" for="password">password</label>
+      <input id="password" type="password" class="auth-input" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
+
+      <label class="panel__label" for="confirm">confirm password</label>
+      <input id="confirm" type="password" class="auth-input" required minlength="6" autocomplete="new-password" placeholder="Repeat password">
+
+      <div id="auth-error" class="result-error hidden"></div>
+
+      <button type="submit" id="register-btn" class="btn btn--block">
+        <span class="btn__label">Create account</span>
+      </button>
+    </form>
+
+    <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+document.getElementById("register-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const confirm = document.getElementById("confirm").value;
+  const btn = document.getElementById("register-btn");
+  const errBox = document.getElementById("auth-error");
+  errBox.classList.add("hidden");
+
+  if (password !== confirm) {
+    errBox.textContent = "Passwords do not match.";
+    errBox.classList.remove("hidden");
+    return;
+  }
+
+  setBtnLoading(btn, true, "Creating account...");
+  try {
+    const data = await apiRequest("/auth/register", "POST", { email, password }, false);
+    saveToken(data.access_token, data.email);
+    window.location.href = "index.html";
+  } catch (err) {
+    errBox.textContent = err.message || "Registration failed.";
+    errBox.classList.remove("hidden");
+  } finally {
+    setBtnLoading(btn, false, "Create account");
+  }
+});
+</script>
+</body>
+</html>

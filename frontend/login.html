@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in · Phishing Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="scanner__prompt">
+      <span class="dot dot--red"></span>
+      <span class="dot dot--amber"></span>
+      <span class="dot dot--green"></span>
+      <span class="scanner__path">mail-scan &nbsp;~&nbsp; log in</span>
+    </div>
+
+    <h1 class="auth-title">Log in</h1>
+    <p class="auth-subtitle">Sign in to start scanning emails.</p>
+
+    <form id="login-form" class="auth-form">
+      <label class="panel__label" for="email">email</label>
+      <input id="email" type="email" class="auth-input" required autocomplete="email" placeholder="you@example.com">
+
+      <label class="panel__label" for="password">password</label>
+      <input id="password" type="password" class="auth-input" required autocomplete="current-password" placeholder="••••••••">
+
+      <div id="auth-error" class="result-error hidden"></div>
+
+      <button type="submit" id="login-btn" class="btn btn--block">
+        <span class="btn__label">Log in</span>
+      </button>
+    </form>
+
+    <p class="auth-switch">No account yet? <a href="register.html">Register</a></p>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const btn = document.getElementById("login-btn");
+  const errBox = document.getElementById("auth-error");
+  errBox.classList.add("hidden");
+  setBtnLoading(btn, true, "Logging in...");
+
+  try {
+    const data = await apiRequest("/auth/login", "POST", { email, password }, false);
+    saveToken(data.access_token, data.email);
+    window.location.href = "index.html";
+  } catch (err) {
+    errBox.textContent = err.message || "Login failed.";
+    errBox.classList.remove("hidden");
+  } finally {
+    setBtnLoading(btn, false, "Log in");
+  }
+});
+</script>
+</body>
+</html>

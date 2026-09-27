@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phishing Email Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scanner">
+
+  <header class="scanner__header">
+    <div class="scanner__prompt">
+      <span class="dot dot--red"></span>
+      <span class="dot dot--amber"></span>
+      <span class="dot dot--green"></span>
+      <span class="scanner__path">mail-scan &nbsp;~&nbsp; phishing-detector</span>
+      <button id="logout-btn" class="logout-btn" title="Log out">
+        <span id="user-email"></span> · log out
+      </button>
+    </div>
+    <h1 class="scanner__title">Is this email trying to trick you?</h1>
+    <p class="scanner__subtitle">Paste the full message below. The model checks wording, urgency cues and structure against patterns learned from thousands of phishing emails.</p>
+  </header>
+
+  <main class="scanner__body">
+
+    <section class="panel panel--input">
+      <label class="panel__label" for="email-input">email content</label>
+      <textarea
+        id="email-input"
+        class="panel__textarea"
+        placeholder="Subject: Your account has been suspended&#10;&#10;Dear Customer, we detected unusual activity on your account. Click here to verify your identity within 24 hours..."
+        spellcheck="false"
+      ></textarea>
+
+      <div class="panel__footer">
+        <span id="char-count" class="char-count">0 characters</span>
+        <button id="analyze-btn" class="btn">
+          <span class="btn__label">Analyze email</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="result-panel" class="panel panel--result panel--empty">
+      <div id="result-empty" class="result-empty">
+        <span class="result-empty__glyph">▢</span>
+        <p>Scan results will appear here.</p>
+      </div>
+
+      <div id="result-content" class="result-content hidden">
+        <div class="verdict">
+          <span id="verdict-icon" class="verdict__icon"></span>
+          <div class="verdict__text">
+            <span id="verdict-label" class="verdict__label"></span>
+            <span id="verdict-risk" class="verdict__risk"></span>
+          </div>
+        </div>
+
+        <div class="confidence">
+          <div class="confidence__row">
+            <span>Confidence</span>
+            <span id="confidence-value">0%</span>
+          </div>
+          <div class="confidence__track">
+            <div id="confidence-fill" class="confidence__fill"></div>
+          </div>
+        </div>
+
+        <div class="signals">
+          <span class="signals__label">Notable signals</span>
+          <div id="signals-list" class="signals__list"></div>
+        </div>
+      </div>
+
+      <div id="result-error" class="result-error hidden"></div>
+    </section>
+
+  </main>
+
+  <footer class="scanner__footer">
+    TF-IDF + Logistic Regression · FastAPI backend
+  </footer>
+
+</div>
+
+<script src="auth.js"></script>
+<script>
+  requireAuth();
+  document.getElementById("user-email").textContent = getUserEmail() || "";
+  document.getElementById("logout-btn").addEventListener("click", logout);
+</script>
+<script src="script.js"></script>
+</body>
+</html>
