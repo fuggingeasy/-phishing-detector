@@ -16,7 +16,8 @@ reported 95.41% accuracy for Logistic Regression. No real dataset was
 provided here, so this script can generate a synthetic-but-structured
 dataset (clearly-templated phishing emails vs. clearly-templated legitimate
 emails) so the full pipeline runs end-to-end. Swap in a real CSV
-(columns: text,label with label in {phishing,legitimate}) to reproduce the
+(e.g. columns text_combined,label with label 0/1, or text,label with
+phishing/legitimate) to reproduce the
 paper's actual numbers.
 """
 
@@ -131,23 +132,81 @@ def generate_synthetic_dataset(path: str, n_rows: int = 4000, seed: int = RANDOM
 # --------------------------------------------------------------------------
 # Training
 # --------------------------------------------------------------------------
-def load_dataset(path: str):
-    texts, labels = [], []
-    with open(path, "r", encoding="utf-8") as f:
+PHISH_LABELS = {"1", "phishing", "phish", "spam", "phishing email", "malicious"}
+LEGIT_LABELS = {"0", "legitimate", "legit", "safe", "ham", "safe email", "benign"}
+
+
+def _normalize_label(raw: str):
+    v = str(raw).strip().lower()
+    if v.endswith(".0"):
+        v = v[:-2]
+    if v in PHISH_LABELS:
+        return "phishing"
+    if v in LEGIT_LABELS:
+        return "legitimate"
+    return None
+
+
+def load_dataset(path: str, text_col=None, label_col=None):
+    """Read a CSV. Column names are auto-detected unless given:
+       text column : text_combined / text / body / email text ...
+       label column: label / class / type ...
+       Labels may be 0/1 (1 = phishing) or words (phishing/legitimate/safe/spam)."""
+    # some real emails are huge; lift csv's default 128 KB field limit
+    limit = sys.maxsize
+    while True:
+        try:
+            csv.field_size_limit(limit)
+            break
+        except OverflowError:
+            limit = int(limit / 10)
+
+    texts, labels, skipped = [], [], 0
+    with open(path, "r", encoding="utf-8", errors="replace", newline="") as f:
         reader = csv.DictReader(f)
+        cols = reader.fieldnames or []
+        lower = {c.strip().lower(): c for c in cols}
+
+        def pick(explicit, candidates):
+            if explicit:
+                if explicit not in cols:
+                    sys.exit(f"[error] column '{explicit}' not found. Columns are: {cols}")
+                return explicit
+            for c in candidates:
+                if c in lower:
+                    return lower[c]
+            sys.exit(f"[error] cannot find a needed column. Columns are: {cols}. "
+                     f"Use --text-col and --label-col.")
+
+        tcol = pick(text_col, ["text_combined", "text", "body", "email text", "email_text", "content", "email"])
+        lcol = pick(label_col, ["label", "class", "type", "email type", "email_type", "category"])
+        print(f"[load] text column = '{tcol}', label column = '{lcol}'")
+
         for row in reader:
-            texts.append(row["text"])
-            labels.append(row["label"].strip().lower())
+            text = (row.get(tcol) or "").strip()
+            lab = _normalize_label(row.get(lcol, ""))
+            if not text or lab is None:
+                skipped += 1
+                continue
+            texts.append(text)
+            labels.append(lab)
+    if skipped:
+        print(f"[load] skipped {skipped} rows (empty text or unknown label)")
     return texts, labels
 
 
-def train(data_path: str, out_dir: str):
-    texts, labels = load_dataset(data_path)
+def train(data_path: str, out_dir: str, text_col=None, label_col=None):
+    texts, labels = load_dataset(data_path, text_col, label_col)
     print(f"[train] loaded {len(texts)} emails "
           f"({labels.count('phishing')} phishing / {labels.count('legitimate')} legitimate)")
 
-    print("[train] cleaning text...")
-    cleaned = [clean_text(t) for t in texts]
+    print("[train] cleaning text (this can take a few minutes on big datasets)...")
+    cleaned = []
+    total = len(texts)
+    for i, t in enumerate(texts, 1):
+        cleaned.append(clean_text(t))
+        if i % 10000 == 0:
+            print(f"        cleaned {i}/{total}")
 
     X_train, X_test, y_train, y_test = train_test_split(
         cleaned, labels, test_size=0.20, random_state=RANDOM_STATE, stratify=labels
@@ -195,10 +254,12 @@ if __name__ == "__main__":
                          help="Path to CSV with columns: text,label")
     parser.add_argument("--generate", type=int, default=0,
                          help="If > 0, generate a synthetic dataset with this many rows first")
+    parser.add_argument("--text-col", default=None, help="Name of the text column (auto-detected if omitted)")
+    parser.add_argument("--label-col", default=None, help="Name of the label column (auto-detected if omitted)")
     parser.add_argument("--out", default=".", help="Output directory for model.pkl / vectorizer.pkl")
     args = parser.parse_args()
 
     if args.generate > 0 or not os.path.exists(args.data):
         generate_synthetic_dataset(args.data, n_rows=args.generate or 4000)
 
-    train(args.data, args.out)
+    train(args.data, args.out, args.text_col, args.label_col)
